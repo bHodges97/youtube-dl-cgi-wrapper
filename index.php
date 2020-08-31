@@ -16,7 +16,7 @@
   <input type="submit" value="Submit">
 </form>
 <br><br>
-Status: <div id="out">Press submit to download</div>
+Status:<small id="stat"></small><div id="out">Press submit to download</div>
 
 <script>
 function changeOpts(opts){
@@ -50,17 +50,19 @@ function formSubmit(event) {
 		var responce = request.responseText.trim();
 		if(responce==="busy"){
 			out.innerHTML = "Server is currently busy. Please try agains later.";
+			document.getElementById("stat").innerHTML = "server is already working on a download";
 		}
 		const source = new EventSource("status.php");
 		source.addEventListener("message", function(event) {
 			var out = document.getElementById("out"); 
 			let res = JSON.parse(event.data);
 			if(res.status==="Completed" ){
-				out.innerHTML = "Download: <a href=\"" + res.url  +"\">"+ res.url.substring(11) + "</a>";
+				out.innerHTML = "Download: <a href=\"" + res.url  +"\">"+ res.url.substring(10) + "</a>";
 			}else{
 				out.innerHTML = res.status;
 			}
 			if(res.status==="Completed" || res.status==="Failed"){
+				document.getElementById("stat").innerHTML = "";
 				source.close()
 			}
 		});
