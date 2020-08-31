@@ -1,0 +1,53 @@
+#!/usr/bin/python3
+import youtube_dl
+import os
+import glob
+import json
+import logging
+
+#file name is so this isnt executed as cgi
+
+def print_headers():
+    print("Cache-Control: no-cache");
+    print("Content-Type: text/event-stream");
+
+
+def hook(entries):
+    if entries['status'] == 'finished':
+        with open('status','w') as f:
+            f.write('{"status": "Converting"}\n')
+    elif entries['status'] == 'downloading':
+        eta = entries['eta']
+        with open('status','w') as f:
+            f.write('{"status": "Downloading ')
+            f.write(entries['tmpfilename'][12:])
+            f.write(' (eta ' + str(eta) + 's)"}\n')
+    elif entries['status'] == 'error':
+        with open('status','w') as f:
+            f.write('{"status": "Failed"}\n')
+
+def clear_downloads():
+    files = glob.glob('downloads/*')
+    for f in files:
+        os.remove(f)
+
+if __name__ == "__main__":
+    logging.basicConfig(filename='log.log', level=logging.DEBUG)
+
+    with open('ydl.json', 'r') as fp:
+        ydl_opts = json.load(fp)
+    url = ydl_opts['url']
+    del ydl_opts['url']
+    ydl_opts['progress_hooks'] = [hook]
+
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        try:
+            clear_downloads()
+            ydl.download([url])
+            with open('status','w') as f:
+                f.write('{"status": "Completed"}\n')
+        except Exception as e:
+            logging.exception(e)
+            with open('status','w') as f:
+                f.write('{"status": "Failed"}\n')
+    os.remove('ydl.json')

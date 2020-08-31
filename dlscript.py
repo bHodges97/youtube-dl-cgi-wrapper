@@ -1,11 +1,22 @@
 #!/usr/bin/python3 
-from filelock import FileLock,Timeout
 import cgi
 import youtube_dl
 import os
+import sys
+import glob
+import json
+import subprocess
 
+def print_headers(content_type = 'text/html'):
+    print(f'Content-Type: {content_type};charset=utf-8')
+    print()
 
 def download(url,extract_audio,extention):
+    if os.path.exists('ydl.json'):
+        print_headers()
+        print('busy')
+        return
+
     ydl_opts = {
             #'simulate': True,
             'quiet': True,
@@ -29,33 +40,39 @@ def download(url,extract_audio,extention):
         }]
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        result = ydl.extract_info(url)
+        result = ydl.extract_info(url,download=False)
         filename = ydl.prepare_filename(result)
-        filename  = '.'.join(filename.split('.')[:-1]) + "." + extention
+        if extention != "best":
+            filename  = '.'.join(filename.split('.')[:-1]) + "." + extention
+    
+    #already downloaded
+    if os.path.exists(filename):
+        print_headers()
+        print(filename)
+        return
 
-        #if not os.path.exists(filename):
-        ydl.download([url])
+    with open('ydl.json', 'w') as fp:
+        ydl_opts['url'] = url
+        json.dump(ydl_opts, fp)
 
-    return filename
+    with open('status', 'w') as fp:
+        fp.write('{"status": "starting"}')
+
+    print_headers()
+    print(filename)
+    pid = subprocess.Popen([sys.executable, "startdl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
 
 #import cgitb
 #cgitb.enable()
 
 if __name__ == '__main__':
-    print('Content-Type: text/html;charset=utf-8')
-    print()
 
-    try:
-        with FileLock('.lock', timeout=0) as lock:
-            form = cgi.FieldStorage()
-            url = form['url'].value
-            extract_audio = form['type'].value == "audio"
-            extention = form['format'].value
-            try:
-                filename = download(url,extract_audio,extention)
-                print("Download: <a href='" + filename + "'>" + filename.split("/")[-1] + "</a>")
-            except Exception as e:
-                print('Download failed!')
-            
-    except Timeout:
-        print('Server is currently busy. Please try again later.')
+    form = cgi.FieldStorage()
+    url = form['url'].value
+    extract_audio = form['type'].value == "audio"
+    extention = form['format'].value
+
+    #url = "https://www.youtube.com/watch?v=oHg5SJYRHA0"
+    #extract_audio=False
+    #extention = "mkv"
+    download(url,extract_audio,extention)
