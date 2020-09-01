@@ -8,20 +8,22 @@ import json
 import subprocess
 
 def print_headers(content_type = 'text/html'):
-    print(f'Content-Type: {content_type};charset=utf-8')
-    print()
+    print(f'Content-Type: {content_type};charset=utf-8\n\n', flush=True)
+
+def to_stderr(self, message):
+    raise Exception(message)
 
 def download(url,extract_audio,extention):
     if os.path.exists('ydl.json'):
-        print_headers()
-        print('busy')
+        print('Server is current working on another file. Try again later')
         return
 
     ydl_opts = {
             #'simulate': True,
             'quiet': True,
             'no_warnings': True, 
-            'logtostderr': True,
+            #'logtostderr': True,
+            'ignoreerrors': True,
             'no_color': True,
             'outtmpl': './downloads/%(title)s.%(ext)s',
             }
@@ -39,6 +41,9 @@ def download(url,extract_audio,extention):
             'preferedformat': extention,
         }]
 
+    #Override this so it properly raises an exception instead of going to stderr
+    youtube_dl.YoutubeDL.to_stderr = to_stderr 
+
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         result = ydl.extract_info(url,download=False)
         filename = ydl.prepare_filename(result)
@@ -47,8 +52,9 @@ def download(url,extract_audio,extention):
     
     #already downloaded
     if os.path.exists(filename):
-        print_headers()
         print(filename)
+        with open('status', 'w') as fp:
+            fp.write('{"status": "Completed", "url":"'+filename+'"}')
         return
 
     with open('ydl.json', 'w') as fp:
@@ -58,8 +64,7 @@ def download(url,extract_audio,extention):
     with open('status', 'w') as fp:
         fp.write('{"status": "starting"}')
 
-    print_headers()
-    print(filename)
+    print('working on "' + ".".join(filename.split(".")[:-1])[12:] + '"')
     pid = subprocess.Popen([sys.executable, "startdl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
 
 #import cgitb
@@ -75,4 +80,11 @@ if __name__ == '__main__':
     #url = "https://www.youtube.com/watch?v=oHg5SJYRHA0"
     #extract_audio=False
     #extention = "mkv"
-    download(url,extract_audio,extention)
+    print_headers()
+    try:
+        download(url,extract_audio,extention)
+    except Exception as e:
+        print(e)
+
+        with open('status', 'w') as fp:
+            fp.write('{"status": "Failed"}')

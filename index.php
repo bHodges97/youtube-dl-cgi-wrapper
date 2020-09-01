@@ -16,7 +16,9 @@
   <input type="submit" value="Submit">
 </form>
 <br><br>
-Status:<small id="stat"></small><div id="out">Press submit to download</div>
+<div>Status: <span id="stat">On standby</span></div>
+<div>Progress: <span id="out">Press submit to download</span></div>
+<div>Download: <span id="dl">Unavaliable</span></div>
 
 <script>
 function changeOpts(opts){
@@ -44,26 +46,24 @@ function formSubmit(event) {
 	var url = "dlscript.py";
 	var request = new XMLHttpRequest();
 	var out = document.getElementById("out"); 
+	document.getElementById("dl").innerHTML = "Unvaliable"
 	request.open('POST', url, true);
 	request.onload = function() { // request successful
 		// we can use server response to our request now
 		var responce = request.responseText.trim();
-		if(responce==="busy"){
-			out.innerHTML = "Server is currently busy. Please try agains later.";
-			document.getElementById("stat").innerHTML = "server is already working on a download";
-		}
+		document.getElementById("stat").innerHTML = responce
 		const source = new EventSource("status.php");
 		source.addEventListener("message", function(event) {
 			var out = document.getElementById("out"); 
 			let res = JSON.parse(event.data);
+			out.innerHTML = res.status;
 			if(res.status==="Completed" ){
-				out.innerHTML = "Download: <a href=\"" + res.url  +"\">"+ res.url.substring(10) + "</a>";
-			}else{
-				out.innerHTML = res.status;
+				let link = "<a href=\"" + res.url  +"\">"+ res.url.substring(10) + "</a>";
+				document.getElementById("dl").innerHTML = link
 			}
 			if(res.status==="Completed" || res.status==="Failed"){
-				document.getElementById("stat").innerHTML = "";
 				source.close()
+				document.getElementById("stat").innerHTML = "On standby";
 			}
 		});
 	};
