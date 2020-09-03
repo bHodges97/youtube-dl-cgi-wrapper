@@ -32,14 +32,16 @@ def download(url,extract_audio,extention):
             'key': 'FFmpegExtractAudio',
             'preferredcodec': extention,
         }]
-    elif extention != "best":
-        #https://github.com/ytdl-org/youtube-dl/issues/20095
-        #ydl_opts['merge_output_format'] = extention
-        #The following breaks sometimes too based on video
-        ydl_opts['postprocessors'] = [{
-            'key': 'FFmpegVideoConvertor',
-            'preferedformat': extention,
-        }]
+    else:
+        ydl_opts['writesubtitles'] = True
+        if extention != "best":
+            #https://github.com/ytdl-org/youtube-dl/issues/20095
+            #ydl_opts['merge_output_format'] = extention
+            #The following breaks sometimes too based on video
+            ydl_opts['postprocessors'] = [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': extention,
+            }]
 
     #Override this so it properly raises an exception instead of going to stderr
     youtube_dl.YoutubeDL.to_stderr = to_stderr 

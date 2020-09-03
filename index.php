@@ -63,7 +63,7 @@ function formSubmit(event) {
 			}
 			if(res.status==="Completed" || res.status==="Failed"){
 				source.close()
-				document.getElementById("stat").innerHTML = "On standby";
+			//	document.getElementById("stat").innerHTML = "On standby";
 			}
 		});
 	};
