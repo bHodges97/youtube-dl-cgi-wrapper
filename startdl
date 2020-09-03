@@ -4,6 +4,7 @@ import os
 import glob
 import json
 import logging
+import zipfile
 
 #file name is so this isnt executed as cgi
 
@@ -44,7 +45,16 @@ if __name__ == "__main__":
         try:
             clear_downloads()
             ydl.download([url])
-            path = glob.glob('downloads/*')[0]
+            path = glob.glob('downloads/*')
+            if len(path) > 1:
+                outpath = ".".join(path[0].split(".")[:-1]) + ".zip"
+                with zipfile.ZipFile(outpath, 'w') as zipf:
+                    for x in path:
+                        zipf.write(x)
+                path = outpath
+            else:
+                path = path[0]
+
             with open('status','w') as f:
                 f.write('{"status": "Completed",')
                 f.write('"url": "'+path+'"}')

@@ -13,7 +13,7 @@ def print_headers(content_type = 'text/html'):
 def to_stderr(self, message):
     raise Exception(message)
 
-def download(url,extract_audio,extention):
+def download(url,extention,extract_audio,extract_subtitle):
     if os.path.exists('ydl.json'):
         print('Server is current working on another file. Try again later')
         return
@@ -33,7 +33,8 @@ def download(url,extract_audio,extention):
             'preferredcodec': extention,
         }]
     else:
-        ydl_opts['writesubtitles'] = True
+        if extract_subtitle:
+            ydl_opts['writesubtitles'] = True
         if extention != "best":
             #https://github.com/ytdl-org/youtube-dl/issues/20095
             #ydl_opts['merge_output_format'] = extention
@@ -53,11 +54,13 @@ def download(url,extract_audio,extention):
             filename  = '.'.join(filename.split('.')[:-1]) + "." + extention
     
     #already downloaded
-    if os.path.exists(filename):
-        print(filename)
-        with open('status', 'w') as fp:
-            fp.write('{"status": "Completed", "url":"'+filename+'"}')
-        return
+    #Removing this as filename prediction from best is unreliable
+    #subtitle option also ocassionally includes additional subtitile file.
+    #if os.path.exists(filename):
+    #    print(filename)
+    #    with open('status', 'w') as fp:
+    #        fp.write('{"status": "Completed", "url":"'+filename+'"}')
+    #    return
 
     with open('ydl.json', 'w') as fp:
         ydl_opts['url'] = url
@@ -78,13 +81,14 @@ if __name__ == '__main__':
     url = form['url'].value
     extract_audio = form['type'].value == "audio"
     extention = form['format'].value
+    extract_subtitle = 'subtitle' in form
 
     #url = "https://www.youtube.com/watch?v=oHg5SJYRHA0"
     #extract_audio=False
     #extention = "mkv"
     print_headers()
     try:
-        download(url,extract_audio,extention)
+        download(url,extention,extract_audio,extract_subtitle)
     except Exception as e:
         print(e)
 
