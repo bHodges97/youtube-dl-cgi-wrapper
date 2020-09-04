@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from dlscript import write_status
 import youtube_dl
 import os
 import glob
@@ -12,20 +13,16 @@ def print_headers():
     print("Cache-Control: no-cache");
     print("Content-Type: text/event-stream");
 
-
 def hook(entries):
     if entries['status'] == 'finished':
-        with open('status','w') as f:
-            f.write('{"status": "Converting"}\n')
+        write_status("Converting")
     elif entries['status'] == 'downloading':
+        filename = entries['tmpfilename'][12:]
         eta = entries['eta']
-        with open('status','w') as f:
-            f.write('{"status": "Downloading ')
-            f.write(entries['tmpfilename'][12:])
-            f.write(' (eta ' + str(eta) + 's)"}\n')
+        eta_str = ' (eta ' + str(eta) + 's)'
+        write_status("Downloading " + filename + eta_str)
     elif entries['status'] == 'error':
-        with open('status','w') as f:
-            f.write('{"status": "Failed"}\n')
+        write_status("Failed")
 
 def clear_downloads():
     files = glob.glob('downloads/*')
@@ -50,16 +47,13 @@ if __name__ == "__main__":
                 outpath = ".".join(path[0].split(".")[:-1]) + ".zip"
                 with zipfile.ZipFile(outpath, 'w') as zipf:
                     for x in path:
-                        zipf.write(x)
+                        zipf.write(x,arcname=x[12:])
                 path = outpath
             else:
                 path = path[0]
 
-            with open('status','w') as f:
-                f.write('{"status": "Completed",')
-                f.write('"url": "'+path+'"}')
+            write_status("Completed",[("url",path)])
         except Exception as e:
             logging.exception(e)
-            with open('status','w') as f:
-                f.write('{"status": "Failed"}\n')
+            write_status("Failed")
     os.remove('ydl.json')

@@ -13,6 +13,13 @@ def print_headers(content_type = 'text/html'):
 def to_stderr(self, message):
     raise Exception(message)
 
+def write_status(status,additional=[]):
+    with open('status','w') as f:
+        f.write('{"status": "'+status+'"')
+        for k,v in additional:
+            f.write(',"'+k+'": "'+v+'"')
+        f.write('}\n')
+
 def download(url,extention,extract_audio,extract_subtitle):
     if os.path.exists('ydl.json'):
         print('Server is current working on another file. Try again later')
@@ -58,16 +65,14 @@ def download(url,extention,extract_audio,extract_subtitle):
     #subtitle option also ocassionally includes additional subtitile file.
     #if os.path.exists(filename):
     #    print(filename)
-    #    with open('status', 'w') as fp:
-    #        fp.write('{"status": "Completed", "url":"'+filename+'"}')
+    #    write_status("Completed",[("url",filename)])
     #    return
 
     with open('ydl.json', 'w') as fp:
         ydl_opts['url'] = url
         json.dump(ydl_opts, fp)
 
-    with open('status', 'w') as fp:
-        fp.write('{"status": "starting"}')
+    write_status("Starting")
 
     print('working on "' + ".".join(filename.split(".")[:-1])[12:] + '"')
     pid = subprocess.Popen([sys.executable, "startdl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -92,5 +97,4 @@ if __name__ == '__main__':
     except Exception as e:
         print(e)
 
-        with open('status', 'w') as fp:
-            fp.write('{"status": "Failed"}')
+        write_status("Failed")
